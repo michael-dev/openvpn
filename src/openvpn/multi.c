@@ -2660,6 +2660,17 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 #else
                 const uint16_t vid = 0;
 #endif
+#ifdef ENABLE_SRC_FILTER
+                if (c->options.src_filter && BLEN(&c->c2.to_tun) >= (int) sizeof(struct openvpn_ethhdr)) {
+                    const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR(&c->c2.to_tun);
+                    if (memcmp(c->options.src_filter_mac, eth->source, 6))
+                        /* Drop bad src frame. */
+                        c->c2.to_tun.len = 0;
+                } else if (c->options.src_filter) {
+                    /* Drop too short frame. */
+                    c->c2.to_tun.len = 0;
+                }
+#endif /* ifdef ENABLE_SRC_FILTER */
 #ifdef ENABLE_PF
                 struct mroute_addr edest;
                 mroute_addr_reset(&edest);

@@ -263,6 +263,13 @@ AC_ARG_ENABLE(
 	[VLAN_TAGGING="yes"]
 )
 
+AC_ARG_ENABLE(
+       [src-filter],
+       [AS_HELP_STRING([--disable-src-filter], [Disable support link src filter])],
+	[SRC_FILTER="$enableval"],
+	[SRC_FILTER="yes"]
+)
+
 AC_ARG_WITH(
 	[special-build],
 	[AS_HELP_STRING([--with-special-build=STRING], [specify special build string])],
@@ -1321,6 +1328,10 @@ fi
 
 if test "$VLAN_TAGGING" = "yes"; then
    AC_DEFINE(ENABLE_VLAN_TAGGING, 1, [Enable 802.1Q-based VLAN tagging/untagging])
+fi
+
+if test "$SRC_FILTER" = "yes"; then
+   AC_DEFINE(ENABLE_SRC_FILTER, 1, [Enable link src filtering])
 fi
 
 CONFIGURE_DEFINES="`set | grep '^enable_.*=' ; set | grep '^with_.*='`"

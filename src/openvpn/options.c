@@ -855,6 +855,15 @@ init_options(struct options *o, const bool init_gc)
     o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
 #endif /* ifdef ENABLE_VLAN_TAGGING */
+#ifdef ENABLE_SRC_FILTER
+    o->src_filter = false;
+    o->src_filter_mac[0] = 0;
+    o->src_filter_mac[1] = 0;
+    o->src_filter_mac[2] = 0;
+    o->src_filter_mac[3] = 0;
+    o->src_filter_mac[4] = 0;
+    o->src_filter_mac[5] = 0;
+#endif /* ifdef ENABLE_SRC_FILTER */
 #if P2MP_SERVER
     o->real_hash_size = 256;
     o->virtual_hash_size = 256;
@@ -1255,6 +1264,9 @@ static void
 show_p2mp_parms(const struct options *o)
 {
     struct gc_arena gc = gc_new();
+#ifdef ENABLE_SRC_FILTER
+    int dev = dev_type_enum(o->dev, o->dev_type);
+#endif /* ENABLE_SRC_FILTER */
 
 #if P2MP_SERVER
     msg(D_SHOW_PARMS, "  server_network = %s", print_in_addr_t(o->server_network, 0, &gc));
@@ -1321,6 +1333,22 @@ show_p2mp_parms(const struct options *o)
     msg(D_SHOW_PARMS, "  vlan_accept = %s", print_vlan_accept (o->vlan_accept));
     SHOW_INT(vlan_pvid);
 #endif /* ifdef ENABLE_VLAN_TAGGING */
+#ifdef ENABLE_SRC_FILTER
+    if (dev == DEV_TYPE_TAP) {
+        SHOW_BOOL(src_filter);
+        if (o->src_filter) {
+            char tmp_buf[18];
+            openvpn_snprintf(tmp_buf, sizeof(tmp_buf), "%x:%x:%x:%x:%x:%x",
+			     o->src_filter_mac[0],
+			     o->src_filter_mac[1],
+			     o->src_filter_mac[2],
+			     o->src_filter_mac[3],
+			     o->src_filter_mac[4],
+			     o->src_filter_mac[5]);
+            msg(D_SHOW_PARMS, "  allow-src = %s", tmp_buf);
+	}
+    }
+#endif /* ifdef ENABLE_SRC_FILTER */
 #endif /* P2MP_SERVER */
 
     SHOW_BOOL(client);
@@ -2402,6 +2430,12 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             }
         }
 #endif /* ifdef ENABLE_VLAN_TAGGING */
+#ifdef ENABLE_SRC_FILTER
+        if (options->src_filter && dev != DEV_TYPE_TAP)
+        {
+            msg(M_USAGE, "--allow-src must currently be used with --dev tap");
+        }
+#endif /* ifdef ENABLE_SRC_FILTER */
 
     }
     else
@@ -8434,6 +8468,27 @@ add_option(struct options *options,
         }
     }
 #endif /* ifdef ENABLE_VLAN_TAGGING */
+#ifdef ENABLE_SRC_FILTER
+    else if (streq(p[0], "allow-src") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
+        options->src_filter = true;
+        int tmp_val[6];
+        if( 6 == sscanf( p[1], "%x:%x:%x:%x:%x:%x",
+                         &tmp_val[0], &tmp_val[1], &tmp_val[2],
+                         &tmp_val[3], &tmp_val[4], &tmp_val[5] ) ) {
+           options->src_filter_mac[0] = (char) tmp_val[0];
+           options->src_filter_mac[1] = (char) tmp_val[1];
+           options->src_filter_mac[2] = (char) tmp_val[2];
+           options->src_filter_mac[3] = (char) tmp_val[3];
+           options->src_filter_mac[4] = (char) tmp_val[4];
+           options->src_filter_mac[5] = (char) tmp_val[5];
+        } else {
+            msg(msglevel, "allow-src must use aa:bb:cc:dd:ee:ff format");
+            goto err;
+        }
+    }
+#endif /* ifdef ENABLE_SRC_FILTER */
     else
     {
         int i;

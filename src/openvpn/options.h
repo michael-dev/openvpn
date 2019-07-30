@@ -640,6 +640,12 @@ struct options
     uint16_t vlan_pvid;
 #endif /* ifdef ENABLE_VLAN_TAGGING */
 
+#ifdef ENABLE_SRC_FILTER
+    bool src_filter;
+    char src_filter_mac[6];
+    /* to be extended for non-tap mode using union */ 
+#endif /* ifdef ENABLE_SRC_FILTER */
+
     struct pull_filter_list *pull_filter_list;
 
     /* Useful when packets sent by openvpn itself are not subject
